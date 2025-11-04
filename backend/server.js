@@ -12,7 +12,11 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 
-app.use(cors());
+// Thay thế dòng app.use(cors()); bằng đoạn code này
+app.use(cors({
+  origin: 'https://my-pickle-bay.vercel.app' // <-- THAY BẰNG DOMAIN BẠN VỪA COPY
+}));
+
 app.use(express.json());
 
 // Middleware để phục vụ file tĩnh từ thư mục 'uploads'
