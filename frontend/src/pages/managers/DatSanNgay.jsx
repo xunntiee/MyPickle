@@ -14,6 +14,8 @@ export function DatSanNgay() {
 
   const [selectedBooking, setSelectedBooking] = useState(null); // booking để hiển thị form
 
+  const [allMonthlyData, setAllMonthlyData] = useState([]);
+
   //   const currentUser =
   //   JSON.parse(localStorage.getItem("user")) ||
   //   JSON.parse(localStorage.getItem("khach"));
