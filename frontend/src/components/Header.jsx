@@ -1,4 +1,4 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useCart } from "../context/CartContext";
 import { useState, useEffect } from "react";
 import "./Header.css";
@@ -7,12 +7,13 @@ const Header = () => {
   const { getCartCount } = useCart();
   const [userName, setUserName] = useState(null);
   const [role, setRole] = useState(null);
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.clear(); // ⚠️ Xóa tất cả dữ liệu trong localStorage
     setUserName(null);
     setRole(null);
-    window.location.href = "/login";
+    navigate("/login");
   };
 
 
