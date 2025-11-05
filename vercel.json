@@ -1,8 +1,84 @@
 {
     "rewrites": [
         {
+            "source": "/api/client/products/:path*",
+            "destination": "/backend/api/client/products/index.js"
+        },
+        {
+            "source": "/api/admin/taikhoan/:path*",
+            "destination": "/backend/api/admin/taikhoan/index.js"
+        },
+        {
+            "source": "/api/admin/xeve/datve/:path*",
+            "destination": "/backend/api/admin/xeve/datve/index.js"
+        },
+        {
+            "source": "/api/admin/xeve/sukien/:path*",
+            "destination": "/backend/api/admin/xeve/sukien/index.js"
+        },
+        {
+            "source": "/api/admin/xeve/:path*",
+            "destination": "/backend/api/admin/xeve/index.js"
+        },
+        {
+            "source": "/api/admin/santhang/:path*",
+            "destination": "/backend/api/admin/santhang/index.js"
+        },
+        {
+            "source": "/api/admin/san/:path*",
+            "destination": "/backend/api/admin/san/index.js"
+        },
+        {
+            "source": "/api/admin/phieunhap/:path*",
+            "destination": "/backend/api/admin/phieunhap/index.js"
+        },
+        {
+            "source": "/api/admin/products/:path*",
+            "destination": "/backend/api/admin/products/index.js"
+        },
+        {
+            "source": "/api/admin/orders/:path*",
+            "destination": "/backend/api/admin/orders/index.js"
+        },
+        {
+            "source": "/api/admin/nhanvien/:path*",
+            "destination": "/backend/api/admin/nhanvien/index.js"
+        },
+        {
+            "source": "/api/admin/nhacungcap/:path*",
+            "destination": "/backend/api/admin/nhacungcap/index.js"
+        },
+        {
+            "source": "/api/admin/khachhang/:path*",
+            "destination": "/backend/api/admin/khachhang/index.js"
+        },
+        {
+            "source": "/api/admin/categories/:path*",
+            "destination": "/backend/api/admin/categories/index.js"
+        },
+        {
+            "source": "/api/admin/calam/:path*",
+            "destination": "/backend/api/admin/calam/index.js"
+        },
+        {
+            "source": "/api/admin/:path*",
+            "destination": "/backend/api/admin/index.js"
+        },
+        {
+            "source": "/api/client/categories/:path*",
+            "destination": "/backend/api/client/categories/index.js"
+        },
+        {
+            "source": "/api/client/orders/:path*",
+            "destination": "/backend/api/client/orders/index.js"
+        },
+        {
+            "source": "/api/client/:path*",
+            "destination": "/backend/api/client/index.js"
+        },
+        {
             "source": "/api/:path*",
-            "destination": "/backend/api/:path*"
+            "destination": "/backend/api/index.js"
         },
         {
             "source": "/((?!api/).*)",
