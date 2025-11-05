@@ -46,13 +46,12 @@ export function DatSanNgay() {
     let maNguoiDung = "";
 
     if (currentUser?.role === "Nhân viên" || currentUser?.role === "Quản lý") {
-      role = "nhanvien";
+      role = currentUser.role;
       maNguoiDung = currentUser.maNV;
       console.log("🔹 Đang đăng nhập với vai trò:", currentUser.role);
       console.log("Mã nhân viên:", maNguoiDung);
     } else if (currentUser?.MaKH) {
-      // ✅ sửa từ currentUser.id => currentUser.MaKH
-      role = "khachhang";
+      role = "Khách hàng";
       maNguoiDung = currentUser.MaKH; // ✅ sửa từ currentUser.id => currentUser.MaKH
       console.log("🔹 Khách hàng đăng nhập:");
       console.log("Mã KH:", maNguoiDung);
@@ -605,7 +604,7 @@ export function DatSanNgay() {
 
   return (
     <div className="sanngay-container">
-      {role !== "khachhang" && <Sidebar />}
+      {(role === "Nhân viên" || role === "Quản lý") && <Sidebar />}
 
       {/* Modal thông tin booking cho quản lý */}
       {selectedBooking && (

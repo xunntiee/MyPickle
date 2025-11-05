@@ -19,8 +19,9 @@ async function generateNewCustomerId() {
 }
 
 router.post('/', async (req, res) => {
+    const connection = await db.getConnection();
     try {
-        await db.beginTransaction();
+        await connection.beginTransaction();
 
         const {
             notes, paymentMethod, items, total,
@@ -42,11 +43,13 @@ router.post('/', async (req, res) => {
         customerSex = customerSex || null;
 
         if (!customerName) {
-            await db.rollback();
+            await connection.rollback();
+            connection.release();
             return res.status(400).json({ error: 'Tên khách hàng không được để trống.' });
         }
         if (!customerPhone) {
-            await db.rollback();
+            await connection.rollback();
+            connection.release();
             return res.status(400).json({ error: 'Số điện thoại khách hàng không được để trống.' });
         }
 
@@ -56,25 +59,25 @@ router.post('/', async (req, res) => {
         let initialStatus;
 
         if (customerId) {
-            await db.query(
+            await connection.query(
                 `UPDATE tbl_khachhang SET TenKh = ?, SDT = ?, email = ?, DiaChi = ?, GioiTinh = ? WHERE id = ?`,
                 [customerName, customerPhone, customerEmail, customerAddress, customerSex, customerId]
             );
         } else {
-            const [existingCustomers] = await db.query(
+            const [existingCustomers] = await connection.query(
                 "SELECT id FROM tbl_khachhang WHERE email = ? OR SDT = ?",
                 [customerEmail, customerPhone]
             );
 
             if (existingCustomers.length > 0) {
                 customerId = existingCustomers[0].id;
-                await db.query(
+                await connection.query(
                     `UPDATE tbl_khachhang SET TenKh = ?, SDT = ?, email = ?, DiaChi = ?, GioiTinh = ? WHERE id = ?`,
                     [customerName, customerPhone, customerEmail, customerAddress, customerSex, customerId]
                 );
             } else {
                 customerId = await generateNewCustomerId();
-                await db.query(
+                await connection.query(
                     `INSERT INTO tbl_khachhang (id, TenKh, SDT, email, DiaChi, GioiTinh) VALUES (?, ?, ?, ?, ?, ?)`,
                     [customerId, customerName, customerPhone, customerEmail, customerAddress, customerSex]
                 );
@@ -85,27 +88,30 @@ router.post('/', async (req, res) => {
 
         for (const item of items) {
             if (!item.product_id) {
-                await db.rollback();
+                await connection.rollback();
+                connection.release();
                 console.error('Lỗi: product_id bị thiếu cho sản phẩm:', item.name);
                 return res.status(400).json({ error: `Thiếu ID sản phẩm cho '${item.name}'. Vui lòng kiểm tra lại giỏ hàng.` });
             }
 
-            const [[product]] = await db.query(
+            const [[product]] = await connection.query(
                 'SELECT stock, name FROM products WHERE id = ? FOR UPDATE',
                 [item.product_id]
             );
 
             if (!product) {
-                await db.rollback();
+                await connection.rollback();
+                connection.release();
                 return res.status(404).json({ error: `Sản phẩm '${item.name}' không tồn tại.` });
             }
 
             if (product.stock < item.quantity) {
-                await db.rollback();
+                await connection.rollback();
+                connection.release();
                 return res.status(400).json({ error: `Không đủ hàng tồn kho cho sản phẩm '${product.name}'. Chỉ còn ${product.stock} sản phẩm.` });
             }
 
-            await db.query('UPDATE products SET stock = stock - ? WHERE id = ?', [
+            await connection.query('UPDATE products SET stock = stock - ? WHERE id = ?', [
                 item.quantity,
                 item.product_id,
             ]);
@@ -116,7 +122,7 @@ router.post('/', async (req, res) => {
             notes, paymentMethod, total, initialStatus, orderType
         ];
 
-        const [orderResult] = await db.query(
+        const [orderResult] = await connection.query(
             `INSERT INTO orders (order_code, customer_id, customer_name, customer_email, customer_phone, shipping_address, notes, payment_method, total_amount, status, order_type)
              VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             orderData
@@ -125,24 +131,27 @@ router.post('/', async (req, res) => {
         const orderId = orderResult.insertId;
 
         for (const item of items) {
-            await db.query(
+            await connection.query(
                 `INSERT INTO order_items (order_id, product_id, quantity, price, color, product_name)
                  VALUES (?, ?, ?, ?, ?, ?)`,
                 [orderId, item.product_id, item.quantity, item.price, item.color, item.name]
             );
         }
 
-
-        await db.commit();
+        await connection.commit();
         res.status(201).json({ success: true, message: 'Đặt hàng thành công!', orderCode: orderCode });
 
     } catch (error) {
-        await db.rollback();
+        await connection.rollback();
         console.error('Lỗi khi tạo đơn hàng:', error);
-        if (error.message.includes('Không đủ hàng tồn kho')) {
+        if (error.message && error.message.includes('Không đủ hàng tồn kho')) {
+            connection.release();
             return res.status(400).json({ error: error.message });
         }
+        connection.release();
         res.status(500).json({ error: 'Không thể tạo đơn hàng.' });
+    } finally {
+        if (connection) connection.release();
     }
 });
 

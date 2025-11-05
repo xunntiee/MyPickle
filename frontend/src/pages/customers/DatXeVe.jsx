@@ -14,7 +14,7 @@ export function DatXeVe() {
   useEffect(() => {
     const fetchXeVe = async () => {
       try {
-        const res = await fetch("http://localhost:3000/api/xeve/sukien/getAllXeVe");
+        const res = await fetch("http://localhost:3000/api/admin/xeve/sukien");
         const data = await res.json();
         setEvents(data);
         setFilteredEvents(data); // mặc định hiển thị tất cả
@@ -45,16 +45,16 @@ export function DatXeVe() {
   }, [selectedDate, events]);
 
   // 🔹 Khi bấm chọn 1 sự kiện
-const handleSelectEvent = (event) => {
-  console.log("Sự kiện được chọn:", event);
+  const handleSelectEvent = (event) => {
+    console.log("Sự kiện được chọn:", event);
 
-  // Khởi tạo role và mã khách
-  const role = "khach";
-  const MaKH = "KH002";
+    // Khởi tạo role và mã khách
+    const role = "khach";
+    const MaKH = "KH002";
 
-  // Chuyển sang trang chi tiết, kèm theo dữ liệu sự kiện và thông tin khách
-  navigate("/chitietve", { state: { event, role, MaKH } });
-};
+    // Chuyển sang trang chi tiết, kèm theo dữ liệu sự kiện và thông tin khách
+    navigate("/chitietve", { state: { event, role, MaKH } });
+  };
 
   if (loading) return <div className="dxv-container">Đang tải dữ liệu...</div>;
 

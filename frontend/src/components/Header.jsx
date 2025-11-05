@@ -8,33 +8,33 @@ const Header = () => {
   const [userName, setUserName] = useState(null);
   const [role, setRole] = useState(null);
 
-const handleLogout = () => {
-  localStorage.clear(); // ⚠️ Xóa tất cả dữ liệu trong localStorage
-  setUserName(null);
-  setRole(null);
-  window.location.href = "/login";
-};
-
-
- const checkLoginStatus = () => {
-  const user = JSON.parse(localStorage.getItem("user"));
-  const khach = JSON.parse(localStorage.getItem("khach"));
-
-  if (user && (user.role === "Nhân viên" || user.role === "Quản lý")) {
-    // Nhân viên hoặc Quản lý
-    setUserName(user.userName);
-    setRole(user.role);
-    console.log("🔹 Đăng nhập với vai trò:", user.role);
-  } else if (khach) {
-    // Khách hàng
-    setUserName(khach.TenKh);
-    setRole(khach.role);
-    console.log("🔹 Khách hàng đăng nhập:", khach.TenKh, khach.role);
-  } else {
+  const handleLogout = () => {
+    localStorage.clear(); // ⚠️ Xóa tất cả dữ liệu trong localStorage
     setUserName(null);
     setRole(null);
-  }
-};
+    window.location.href = "/login";
+  };
+
+
+  const checkLoginStatus = () => {
+    const user = JSON.parse(localStorage.getItem("user"));
+    const khach = JSON.parse(localStorage.getItem("khach"));
+
+    if (user && (user.role === "Nhân viên" || user.role === "Quản lý")) {
+      // Nhân viên hoặc Quản lý
+      setUserName(user.userName);
+      setRole(user.role);
+      console.log("🔹 Đăng nhập với vai trò:", user.role);
+    } else if (khach) {
+      // Khách hàng
+      setUserName(khach.TenKh);
+      setRole(khach.role);
+      console.log("🔹 Khách hàng đăng nhập:", khach.TenKh, khach.role);
+    } else {
+      setUserName(null);
+      setRole(null);
+    }
+  };
 
 
   useEffect(() => {
@@ -64,7 +64,7 @@ const handleLogout = () => {
 
               {/* <Link to="/">Trang chủ</Link>
               <Link to="/shop">Shop</Link> */}
-              
+
               {/* Chỉ hiện menu Quản lý/Bán hàng cho Nhân viên hoặc Quản lý */}
               {role === "Nhân viên" && (
                 <>
@@ -73,7 +73,7 @@ const handleLogout = () => {
                   <Link to="/calam">Đăng ký ca làm</Link>
                 </>
               )}
-              {(role !== "Quản lý") && (
+              {userName && (role !== "Quản lý") && (
                 <div className="nav-dropdown">
                   <span className="dropdown-title">Đặt sân ▾</span>
                   <div className="dropdown-menu">
@@ -141,25 +141,6 @@ const handleLogout = () => {
                 </Link>
               )}
 
-              {/* <Link to="/cart" className="cart-icon-wrapper">
-                <div className="cart-icon">
-                  <svg
-                    width="24"
-                    height="24"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                  >
-                    <circle cx="9" cy="21" r="1" />
-                    <circle cx="20" cy="21" r="1" />
-                    <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6" />
-                  </svg>
-                  {getCartCount() > 0 && (
-                    <span className="cart-badge">{getCartCount()}</span>
-                  )}
-                </div>
-                <span className="cart-text">Giỏ hàng</span>
-              </Link> */}
             </div>
           </div>
         </div>

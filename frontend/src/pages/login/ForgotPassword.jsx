@@ -40,7 +40,7 @@ export default function ForgotPassword() {
       };
 
       const res = await axios.post(
-        "http://localhost:3000/api/taikhoan/forgot-password",
+        "/api/admin/taikhoan/forgot-password",
         payload
       );
 
