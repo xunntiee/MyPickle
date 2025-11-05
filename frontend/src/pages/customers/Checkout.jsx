@@ -31,7 +31,7 @@ const Checkout = () => {
           if (khach.role === "khachhang" && khach.MaKH) { // Thay đổi: Điều kiện kiểm tra vai trò và ID khách hàng
             setIsLoggedIn(true);
             setCustomerId(khach.MaKH); // Lưu customerId vào state
-            const response = await axios.get(`/api/admin/taikhoan/customer/profile?id=${khach.MaKH}`); // Thay đổi: Sử dụng khach.MaKH
+            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/taikhoan/customer/profile?id=${khach.MaKH}`); // Thay đổi: Sử dụng khach.MaKH
             if (response.data.success) {
               const customer = response.data.customer;
               let address = customer.DiaChi || '';
@@ -96,7 +96,7 @@ const Checkout = () => {
 
       console.log("Dữ liệu đơn hàng gửi đi:", orderData); // THÊM DÒNG NÀY ĐỂ KIỂM TRA
 
-      const response = await axios.post('/api/client/orders', orderData); // Đảm bảo URL đầy đủ
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/client/orders`, orderData); // Đảm bảo URL đầy đủ
 
       if (response.data.orderCode) {
         await clearCart();
