@@ -69,13 +69,12 @@ const Home = () => {
           <div className="hero-text">
             <h1>
               <span>Đơn giản – Khác biệt</span>
-              <br />
-              Chơi hay hơn, với vợt tốt hơn
+              <br />  
+              Chơi hay hơn, vợt tốt hơn
             </h1>
             <p>
               Khám phá bộ sưu tập vợt pickleball cao cấp được thiết kế dành cho
-              mọi cấp độ người chơi — từ người mới bắt đầu đến vận động viên
-              chuyên nghiệp.
+              mọi cấp độ người chơi — từ người mới đến vận động viên chuyên nghiệp.
             </p>
             <Link to="/shop" className="btn hero-btn">
               Mua Ngay

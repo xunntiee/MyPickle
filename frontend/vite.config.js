@@ -8,7 +8,7 @@ export default defineConfig({
     proxy: {
       // Chuyển tiếp tất cả các yêu cầu bắt đầu bằng /api đến backend server
       '/api': {
-        target: import.meta.env.VITE_API_URL, // QUAN TRỌNG: Đảm bảo đây là cổng backend của bạn
+        target: process.env.VITE_API_URL || 'http://localhost:3000', // QUAN TRỌNG: Đảm bảo đây là cổng backend của bạn
         changeOrigin: true,
         secure: false,
       },
