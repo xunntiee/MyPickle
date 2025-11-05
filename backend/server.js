@@ -30,6 +30,11 @@
   // Định tuyến API
   app.use("/api", apiRouter);
 
+  // Redirect /products to /api/client/products for backward compatibility
+  app.get("/products", (req, res) => {
+    res.redirect(`/api/client/products${req.url.substring('/products'.length)}`);
+  });
+
   // Kiểm tra server
   app.get("/", (req, res) => {
     res.send("✅ Pickleball Backend đang chạy!");

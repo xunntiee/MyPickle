@@ -6,7 +6,20 @@ const router = express.Router();
 // Get all categories
 router.get('/', async (req, res) => {
     try {
-        const [categories] = await db.query('SELECT * FROM categories ORDER BY name');
+        const { search = '' } = req.query;
+        const searchPattern = `%${search}%`;
+
+        let query = 'SELECT * FROM categories WHERE 1=1';
+        const params = [];
+
+        if (search) {
+            query += ' AND (name LIKE ? OR slug LIKE ?)';
+            params.push(searchPattern, searchPattern);
+        }
+
+        query += ' ORDER BY name';
+
+        const [categories] = await db.query(query, params);
 
         // Construct full image URLs dynamically
         const baseUrl = `${req.protocol}://${req.get('host')}`;
