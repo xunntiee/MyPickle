@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import "./Header.css";
 
 const Header = () => {
-  const { getCartCount } = useCart();
+  const { getCartCount, clearCart } = useCart();
   const [userName, setUserName] = useState(null);
   const [role, setRole] = useState(null);
   const navigate = useNavigate();
@@ -13,6 +13,7 @@ const Header = () => {
     localStorage.clear(); // ⚠️ Xóa tất cả dữ liệu trong localStorage
     setUserName(null);
     setRole(null);
+    clearCart(); // Clear cart items from state and backend
     navigate("/login");
   };
 
