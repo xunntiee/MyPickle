@@ -92,7 +92,7 @@ const Cart = () => {
               {cartItems.map((item) => (
                 <div key={item.id} className="cart-item">
                   <div className="cart-product">
-                    <img src={item.image_url || '/images/placeholder.jpg'} alt={item.name} />
+                    <img src={item.image_url ? `${import.meta.env.VITE_API_URL}${item.image_url}` : '/images/placeholder.jpg'} alt={item.name} />
                     <div className="product-details">
                       <h3>{item.name}</h3>
                       {item.color && <p className="product-color">Màu: {item.color}</p>}
