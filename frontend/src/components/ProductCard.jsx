@@ -26,7 +26,7 @@ const ProductCard = ({ product }) => {
   return (
     <Link to={`/product/${product.id}`} className="product-card">
       <div className="product-image-card">
-        <img src={product.image_url || '/images/placeholder.jpg'} alt={product.name} />
+        <img src={product.image_url ? (product.image_url.startsWith('http') ? product.image_url : `${import.meta.env.VITE_API_URL}${product.image_url}`) : '/images/placeholder.jpg'} alt={product.name} />
         {product.is_new && <span className="badge badge-new">NEW</span>}
         {product.discount_percent > 0 && (
           <span className="badge badge-discount">-{product.discount_percent}%</span>

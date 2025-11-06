@@ -126,7 +126,8 @@ router.get('/', async (req, res) => {
         const baseUrl = `${req.protocol}://${req.get('host')}`;
         const productsWithFullUrls = products.map(product => {
             let imageUrl = product.image_url;
-            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
+            // Ensure the image URL is a full URL if it's a relative path starting with /uploads/
+            if (imageUrl && imageUrl.startsWith('/uploads/') && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
                 imageUrl = `${baseUrl}${imageUrl}`;
             }
             return {

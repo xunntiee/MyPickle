@@ -28,19 +28,19 @@ const Cart = () => {
   };
 
   const handleQuantityChange = (item, value) => {
-  const newQuantity = parseInt(value, 10);
+    const newQuantity = parseInt(value, 10);
 
-  if (isNaN(newQuantity) || newQuantity < 1) {
-    return; // Không cập nhật nếu nhập số không hợp lệ
-  }
+    if (isNaN(newQuantity) || newQuantity < 1) {
+      return; // Không cập nhật nếu nhập số không hợp lệ
+    }
 
-  if (newQuantity > item.stock) {
-    alert(`Chỉ còn ${item.stock} sản phẩm trong kho.`);
-    return;
-  }
+    if (newQuantity > item.stock) {
+      alert(`Chỉ còn ${item.stock} sản phẩm trong kho.`);
+      return;
+    }
 
-  updateQuantity(item.id, newQuantity);
-};
+    updateQuantity(item.id, newQuantity);
+  };
 
   const subtotal = getCartTotal();
   const total = subtotal; // Total is now the same as subtotal
@@ -92,7 +92,7 @@ const Cart = () => {
               {cartItems.map((item) => (
                 <div key={item.id} className="cart-item">
                   <div className="cart-product">
-                    <img src={item.image_url ? `${import.meta.env.VITE_API_URL}${item.image_url}` : '/images/placeholder.jpg'} alt={item.name} />
+                    <img src={item.image_url ? (item.image_url.startsWith('http') ? item.image_url : `${import.meta.env.VITE_API_URL}${item.image_url}`) : '/images/placeholder.jpg'} alt={item.name} />
                     <div className="product-details">
                       <h3>{item.name}</h3>
                       {item.color && <p className="product-color">Màu: {item.color}</p>}
