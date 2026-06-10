@@ -210,38 +210,51 @@
 }
 
 .shipping-options {
-  margin-bottom: 20px;
-  padding: 15px;
-  background: var(--bg-light);
-  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
 }
 
 .shipping-option {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 12px;
+  padding: 16px;
+  border: 2px solid var(--border-color);
+  border-radius: 4px;
   cursor: pointer;
-  margin-bottom: 10px;
+  transition: all 0.3s;
+}
+
+.shipping-option:has(input:checked) {
+  border-color: var(--text-dark);
+  background: var(--bg-light);
 }
 
 .shipping-option input {
   cursor: pointer;
 }
 
-.shipping-option span {
-  flex: 1;
+.shipping-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.shipping-info span:first-child {
+  font-weight: 500;
+}
+
+.shipping-cost {
+  font-weight: 600;
+  color: var(--text-dark);
 }
 
 .discount {
   color: var(--success);
   font-size: 0.85rem;
   font-weight: 600;
-}
-
-.shipping-info {
-  text-align: center;
-  font-weight: 600;
-  color: var(--text-dark);
 }
 
 .summary-totals {

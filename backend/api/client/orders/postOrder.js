@@ -26,7 +26,8 @@ router.post('/', async (req, res) => {
         const {
             notes, paymentMethod, items, total,
             status: requestStatus,
-            orderType: requestOrderType
+            orderType: requestOrderType,
+            shippingMethod, shippingCost
         } = req.body;
 
         let customerId = req.body.customer?.id;
@@ -119,12 +120,12 @@ router.post('/', async (req, res) => {
 
         const orderData = [
             orderCode, customerId, customerName, customerEmail, customerPhone, customerAddress,
-            notes, paymentMethod, total, initialStatus, orderType
+            notes, paymentMethod, total, initialStatus, orderType, shippingMethod || 'standard', shippingCost || 0
         ];
 
         const [orderResult] = await connection.query(
-            `INSERT INTO orders (order_code, customer_id, customer_name, customer_email, customer_phone, shipping_address, notes, payment_method, total_amount, status, order_type)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+            `INSERT INTO orders (order_code, customer_id, customer_name, customer_email, customer_phone, shipping_address, notes, payment_method, total_amount, status, order_type, shipping_method, shipping_cost)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             orderData
         );
 

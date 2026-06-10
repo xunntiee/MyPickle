@@ -8,6 +8,8 @@ const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
   const [paymentMethod, setPaymentMethod] = useState('cod'); // cod: cash on delivery
+  const [shippingMethod, setShippingMethod] = useState('standard');
+  const [shippingCost, setShippingCost] = useState(0);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
@@ -80,6 +82,8 @@ const Checkout = () => {
       const orderData = {
         ...formData,
         paymentMethod,
+        shippingMethod,
+        shippingCost,
         items: cartItems.map(item => ({
           product_id: item.product_id,
           name: item.name,
@@ -88,10 +92,10 @@ const Checkout = () => {
           color: item.color,
           // Thêm các trường khác nếu cần
         })),
-        total: total,
+        total: total + shippingCost,
         status: 'cho_xac_nhan', // Trạng thái mặc định
         customer_id: customerId, // Thay đổi: Thêm customer_id từ state
-        // Xóa dòng này: customer: isLoggedIn ? JSON.parse(localStorage.getItem('user')) : null 
+        // Xóa dòng này: customer: isLoggedIn ? JSON.parse(localStorage.getItem('user')) : null
       };
 
       console.log("Dữ liệu đơn hàng gửi đi:", orderData); // THÊM DÒNG NÀY ĐỂ KIỂM TRA
@@ -201,7 +205,7 @@ const Checkout = () => {
                   required
                 />
               </div>
-              
+
               <div className="form-group">
                 <label>GHI CHÚ (TÙY CHỌN)</label>
                 <textarea
@@ -211,6 +215,44 @@ const Checkout = () => {
                   onChange={handleInputChange}
                   rows="3"
                 ></textarea>
+              </div>
+            </div>
+
+            <div className="form-section">
+              <h2>Phương thức giao hàng</h2>
+              <div className="shipping-options">
+                <label className="shipping-option">
+                  <input
+                    type="radio"
+                    name="shipping"
+                    value="standard"
+                    checked={shippingMethod === 'standard'}
+                    onChange={(e) => {
+                      setShippingMethod(e.target.value);
+                      setShippingCost(30000); // Phí giao hàng tiêu chuẩn
+                    }}
+                  />
+                  <div className="shipping-info">
+                    <span>Giao hàng tiêu chuẩn</span>
+                    <span className="shipping-cost">30,000₫</span>
+                  </div>
+                </label>
+                <label className="shipping-option">
+                  <input
+                    type="radio"
+                    name="shipping"
+                    value="jt_express"
+                    checked={shippingMethod === 'jt_express'}
+                    onChange={(e) => {
+                      setShippingMethod(e.target.value);
+                      setShippingCost(50000); // Phí J&T Express
+                    }}
+                  />
+                  <div className="shipping-info">
+                    <span>J&T Express</span>
+                    <span className="shipping-cost">50,000₫</span>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -263,9 +305,13 @@ const Checkout = () => {
                 <span>Tạm tính</span>
                 <span>{total.toLocaleString('vi-VN')}₫</span>
               </div>
+              <div className="summary-row">
+                <span>Phí giao hàng</span>
+                <span>{shippingCost.toLocaleString('vi-VN')}₫</span>
+              </div>
               <div className="summary-total">
                 <span>Tổng cộng</span>
-                <span>{total.toLocaleString('vi-VN')}₫</span>
+                <span>{(total + shippingCost).toLocaleString('vi-VN')}₫</span>
               </div>
             </div>
           </div>
