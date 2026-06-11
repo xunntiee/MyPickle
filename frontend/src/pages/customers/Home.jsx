@@ -1,96 +1,67 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import axios from "../../utils/axiosConfig";
-import ProductCard from "../../components/ProductCard";
-import "../../css/Home.css";
+import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
+import axios from '../../utils/axiosConfig';
+import ProductCard from '../../components/ProductCard';
+import '../../css/Home.css';
 
 const Home = () => {
   const [newArrivals, setNewArrivals] = useState([]);
   const [onSaleProducts, setOnSaleProducts] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [role, setRole] = useState(""); // nhanvien | khachhang
 
   useEffect(() => {
-    const user = JSON.parse(localStorage.getItem("user")); // nhân viên/quản lý
-    const khach = JSON.parse(localStorage.getItem("khach")); // khách hàng
+    async function loadHomeData() {
+      try {
+        const [newResponse, saleResponse, categoryResponse] = await Promise.all([
+          axios.get('/api/client/products/featured/new-arrivals'),
+          axios.get('/api/client/products/featured/on-sale'),
+          axios.get('/api/client/categories'),
+        ]);
 
-    if (user) {
-      setCurrentUser(user);
-      setRole("nhanvien"); // bao gồm quản lý
-      console.log("🔹 Nhân viên/Quản lý:", user.role, "Mã NV:", user.maNV);
-    } else if (khach) {
-      setCurrentUser(khach);
-      setRole("khachhang");
-      console.log("👉 Khách hàng:", khach.MaKH, khach.TenKh, khach.SDT, khach.role);
+        setNewArrivals(Array.isArray(newResponse.data) ? newResponse.data : []);
+        setOnSaleProducts(Array.isArray(saleResponse.data) ? saleResponse.data : []);
+        setCategories(Array.isArray(categoryResponse.data) ? categoryResponse.data.slice(0, 5) : []);
+      } catch (error) {
+        console.error('Could not load MyPick home data:', error);
+      }
     }
+
+    loadHomeData();
   }, []);
 
-  useEffect(() => {
-    fetchNewArrivals();
-    fetchOnSaleProducts();
-    fetchCategories();
-  }, []);
-
-  const fetchNewArrivals = async () => {
-    try {
-      const response = await axios.get(
-        "/api/client/products/featured/new-arrivals"
-      );
-      setNewArrivals(response.data);
-    } catch (error) {
-      console.error("Lỗi khi tải sản phẩm mới:", error);
-    }
-  };
-
-  const fetchOnSaleProducts = async () => {
-    try {
-      const response = await axios.get("/api/client/products/featured/on-sale");
-      setOnSaleProducts(response.data);
-    } catch (error) {
-      console.error("Lỗi khi tải sản phẩm giảm giá:", error);
-    }
-  };
-
-  const fetchCategories = async () => {
-    try {
-      const response = await axios.get("/api/client/categories");
-      setCategories(response.data.slice(0, 5));
-    } catch (error) {
-      console.error("Lỗi khi tải danh mục:", error);
-    }
-  };
+  const heroImage =
+    newArrivals[0]?.image_url ||
+    onSaleProducts[0]?.image_url ||
+    categories[0]?.image_url ||
+    '';
 
   return (
     <div className="home">
-      {/* Phần giới thiệu (Hero Section) */}
       <section className="hero">
         <div className="hero-content">
           <div className="hero-text">
             <h1>
-              <span>Đơn giản – Khác biệt</span>
+              <span>MyPick Store</span>
               <br />
-              Chơi hay hơn, vợt tốt hơn
+              Pickleball commerce powered by Trevo
             </h1>
             <p>
-              Khám phá bộ sưu tập vợt pickleball cao cấp được thiết kế dành cho
-              mọi cấp độ người chơi — từ người mới đến vận động viên chuyên nghiệp.
+              Sản phẩm, tồn kho và đơn hàng được đồng bộ trực tiếp từ Trevo.
+              MyPick chỉ đóng vai trò storefront và POS cho trải nghiệm bán hàng chuyên biệt.
             </p>
             <Link to="/shop" className="btn hero-btn">
-              Mua Ngay
+              Mua ngay
             </Link>
           </div>
         </div>
 
-        <div className="hero-image">
-          <img
-            src={`${import.meta.env.VITE_API_URL}/uploads/categories/Huong-dan-cach-chon-vot-Pickleball-phu-hop-va-chuan-nhat-Hoc-Vien-VNTA-8.webp`}
-            alt="Dụng cụ Pickleball cao cấp"
-          />
-        </div>
+        {heroImage && (
+          <div className="hero-image">
+            <img src={heroImage} alt="MyPick pickleball products" />
+          </div>
+        )}
       </section>
 
-      {/* Phần danh mục sản phẩm */}
       <section className="categories-section">
         <div className="container">
           <h2 className="section-title">Mua sắm theo danh mục</h2>
@@ -101,12 +72,10 @@ const Home = () => {
                 to={`/shop?category=${category.slug}`}
                 className={`category-card category-${index + 1}`}
               >
-                <img
-                  src={category.image_url}
-                  alt={category.name}
-                  className="category-bg"
-                />
-                <div className="category-overlay"></div>
+                {category.image_url && (
+                  <img src={category.image_url} alt={category.name} className="category-bg" />
+                )}
+                <div className="category-overlay" />
                 <div className="category-content">
                   <h3>{category.name}</h3>
                   <span className="shop-now">Xem ngay →</span>
@@ -117,7 +86,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Phần sản phẩm mới */}
       <section className="new-arrivals-section">
         <div className="container">
           <div className="section-header">
@@ -134,7 +102,6 @@ const Home = () => {
         </div>
       </section>
 
-      {/* Phần sản phẩm giảm giá */}
       <section className="on-sale-section">
         <div className="container">
           <div className="section-header">
@@ -155,74 +122,20 @@ const Home = () => {
         <div className="container">
           <div className="features-grid">
             <div className="feature">
-              <div className="feature-icon">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2l4 4-4 4-4-4z" />
-                  <path d="M4 13h16v8H4z" />
-                </svg>
-              </div>
-              <h3>Sản phẩm chính hãng</h3>
-              <p>Cam kết chất lượng, nguồn gốc rõ ràng</p>
+              <h3>Catalog tập trung</h3>
+              <p>Sản phẩm và danh mục được quản lý tại Trevo.</p>
             </div>
-
             <div className="feature">
-              <div className="feature-icon">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20z" />
-                  <path d="M12 6v6l4 2" />
-                </svg>
-              </div>
-              <h3>Giao hàng nhanh chóng</h3>
-              <p>Nhận hàng tận nơi, uy tín và đúng hẹn</p>
+              <h3>Tồn kho đồng bộ</h3>
+              <p>MyPick đọc tồn kho khả dụng từ Trevo để tránh lệch dữ liệu.</p>
             </div>
-
             <div className="feature">
-              <div className="feature-icon">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M4 4h16v16H4z" />
-                  <path d="M9 9h6v6H9z" />
-                </svg>
-              </div>
-              <h3>Thanh toán khi nhận hàng</h3>
-              <p>COD toàn quốc, an tâm mua sắm</p>
+              <h3>Đơn hàng tập trung</h3>
+              <p>Checkout và POS đều tạo đơn trực tiếp trong Trevo.</p>
             </div>
-
             <div className="feature">
-              <div className="feature-icon">
-                <svg
-                  width="48"
-                  height="48"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                </svg>
-              </div>
-              <h3>Hỗ trợ nhanh chóng</h3>
-              <p>Liên hệ qua hotline hoặc fanpage 24/7</p>
+              <h3>API key an toàn</h3>
+              <p>Khóa Trevo nằm ở backend, không lộ ra trình duyệt.</p>
             </div>
           </div>
         </div>

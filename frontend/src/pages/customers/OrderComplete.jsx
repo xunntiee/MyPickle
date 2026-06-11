@@ -113,9 +113,6 @@ const OrderComplete = () => {
             <Link to="/shop" className="btn btn-outline">
               Tiếp tục mua sắm
             </Link>
-            <Link to="/purchase-history" className="btn btn-outline">
-              Lịch sử mua hàng
-            </Link>
           </div>
 
         </div>

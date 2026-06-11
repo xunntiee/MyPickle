@@ -1,42 +1,14 @@
 services:
-  mypick-db:
-    image: mariadb:10.11
-    environment:
-      MARIADB_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-replace_with_root_password}
-      MARIADB_DATABASE: ${MYSQLDATABASE:-mypick_db}
-      MARIADB_USER: ${MYSQLUSER:-mypick}
-      MARIADB_PASSWORD: ${MYSQLPASSWORD:-replace_with_strong_database_password}
-    volumes:
-      - mypick-db-data:/var/lib/mysql
-      - ./pickleball.sql:/docker-entrypoint-initdb.d/01-pickleball.sql:ro
-    healthcheck:
-      test: ["CMD-SHELL", "mariadb-admin ping -h localhost -u root -p$${MARIADB_ROOT_PASSWORD}"]
-      interval: 10s
-      timeout: 5s
-      retries: 10
-      start_period: 30s
-    restart: unless-stopped
-
   mypick-backend:
     build:
       context: ./backend
     environment:
       PORT: ${PORT:-3000}
-      MYSQLHOST: mypick-db
-      MYSQLUSER: ${MYSQLUSER:-mypick}
-      MYSQLPASSWORD: ${MYSQLPASSWORD:-replace_with_strong_database_password}
-      MYSQLDATABASE: ${MYSQLDATABASE:-mypick_db}
-      MYSQLPORT: 3306
       CORS_ORIGINS: ${CORS_ORIGINS:-https://mypick.trevo.studio,http://localhost:5173}
       TREVO_API_URL: ${TREVO_API_URL:-https://api.trevo.studio/api/external}
       TREVO_API_KEY: ${TREVO_API_KEY:-}
       TREVO_ORIGIN: ${TREVO_ORIGIN:-https://mypick.trevo.studio}
       TREVO_CATALOG_FETCH_LIMIT: ${TREVO_CATALOG_FETCH_LIMIT:-100}
-    depends_on:
-      mypick-db:
-        condition: service_healthy
-    volumes:
-      - mypick-uploads:/app/uploads
     restart: unless-stopped
     networks:
       - default
@@ -46,17 +18,13 @@ services:
     build:
       context: ./frontend
       args:
-        VITE_API_URL: ${VITE_API_URL:-/api}
+        VITE_API_URL: ${VITE_API_URL:-}
     depends_on:
       mypick-backend:
         condition: service_started
     restart: unless-stopped
     networks:
       - edge
-
-volumes:
-  mypick-db-data:
-  mypick-uploads:
 
 networks:
   edge:

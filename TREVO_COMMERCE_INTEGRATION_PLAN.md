@@ -1,12 +1,12 @@
 # MyPick Commerce to Trevo Integration Plan
 
-This document is the implementation brief for migrating the commerce surface of MyPick to Trevo. The goal is to make Trevo the source of truth for products, categories, stock, commerce customers, and orders while keeping the MyPick user experience and storefront/POS screens.
+This document is the implementation brief for migrating the commerce surface of MyPick to Trevo. The goal is to make Trevo the source of truth for products, categories, stock, commerce customers, and orders while keeping only the MyPick storefront/POS experience.
 
-Out of scope: court booking, event tickets, shifts, employees, internal account management, and other pickleball-specific operations. Those domains can continue to use the existing MyPick database until a separate migration is planned.
+Out of scope: court booking, event tickets, shifts, employees, internal account management, and other pickleball-specific operations. Those domains are no longer part of the production MyPick runtime.
 
 ## 1. Target Outcome
 
-- MyPick keeps its commerce UI: shop, product detail, cart, checkout, POS, order complete.
+- MyPick keeps its commerce UI: home, shop, product detail, cart, checkout, POS, order complete.
 - Trevo owns commerce data: products, categories, inventory, customers, and orders.
 - MyPick backend becomes a backend-for-frontend bridge that calls Trevo.
 - MyPick frontend never stores or sends the Trevo API key directly.
@@ -53,8 +53,10 @@ MyPick local database should no longer be used for:
 - Product order creation
 - Product order item creation
 - Backend cart persistence
+- Production deployment state
+- Commerce runtime data
 
-MyPick local database may still be used for non-commerce domains that are explicitly out of scope.
+MyPick local database may still exist in the repo as legacy code, but it is not part of the production compose stack anymore.
 
 ## 4. Environment Variables
 
@@ -74,7 +76,7 @@ Notes:
 - `TREVO_ORIGIN` is only needed if the Trevo API key has allowed origin restrictions. It must match exactly.
 - `TREVO_CATALOG_FETCH_LIMIT` controls the maximum Trevo product window that MyPick fetches for local filtering/sorting. Trevo caps this at 100 per request.
 - MyPick does not need `TREVO_ORG_SLUG` for server-to-server integration. Trevo resolves the organization from the API key.
-- The frontend should only use `VITE_API_URL` pointing to the MyPick backend.
+- The frontend should only use `VITE_API_URL` as an empty string or a backend origin depending on deployment style.
 - Do not add `TREVO_API_KEY` to frontend `.env` files.
 
 ## 5. Backend Bridge Layer

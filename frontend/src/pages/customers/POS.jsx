@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import '../../css/POS.css';
 
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+
 export function POS() {
     const [products, setProducts] = useState([]);
     const [cart, setCart] = useState([]);
@@ -26,7 +28,7 @@ export function POS() {
                     params.append('search', searchTerm);
                 }
 
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/products?${params.toString()}`);
+                const response = await fetch(`${API_BASE_URL}/api/client/products?${params.toString()}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch products');
                 }
@@ -143,7 +145,7 @@ export function POS() {
 
             console.log('POS Checkout - Dữ liệu items đang được gửi:', itemsToSend);
 
-            const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/orders`, {
+            const response = await fetch(`${API_BASE_URL}/api/client/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

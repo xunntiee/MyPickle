@@ -1,114 +1,81 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useCart } from '../../context/CartContext';
 import axios from '../../utils/axiosConfig';
 import '../../css/Checkout.css';
 
+const SHIPPING_OPTIONS = {
+  standard: 30000,
+  express: 50000,
+};
+
 const Checkout = () => {
   const navigate = useNavigate();
   const { cartItems, getCartTotal, clearCart } = useCart();
-  const [paymentMethod, setPaymentMethod] = useState('cod'); // cod: cash on delivery
+  const [paymentMethod, setPaymentMethod] = useState('cod');
   const [shippingMethod, setShippingMethod] = useState('standard');
-  const [shippingCost, setShippingCost] = useState(0);
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     phone: '',
     address: '',
     notes: '',
-    sex: ''
+    sex: '',
   });
-  const [isLoggedIn, setIsLoggedIn] = useState(false); // Thêm state để kiểm tra đăng nhập
-  const [customerId, setCustomerId] = useState(null); // Thêm state để lưu customerId
+  const [submitting, setSubmitting] = useState(false);
 
-  const total = getCartTotal();
+  const subtotal = getCartTotal();
+  const shippingCost = SHIPPING_OPTIONS[shippingMethod] || 0;
+  const total = subtotal + shippingCost;
 
-  useEffect(() => {
-    const loadCustomerData = async () => {
-      const khachString = localStorage.getItem('khach'); // Thay đổi: Đọc từ 'khach'
-      if (khachString) {
-        try {
-          const khach = JSON.parse(khachString);
-          // Kiểm tra nếu là khách hàng và có MaKH
-          if (khach.role === "khachhang" && khach.MaKH) { // Thay đổi: Điều kiện kiểm tra vai trò và ID khách hàng
-            setIsLoggedIn(true);
-            setCustomerId(khach.MaKH); // Lưu customerId vào state
-            const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/admin/taikhoan/customer/profile?id=${khach.MaKH}`); // Thay đổi: Sử dụng khach.MaKH
-            if (response.data.success) {
-              const customer = response.data.customer;
-              let address = customer.DiaChi || '';
-              if (address.includes(',')) {
-                const parts = address.split(',');
-                address = parts.join(',').trim(); // Phần còn lại là address
-              }
-
-              setFormData({
-                fullName: customer.TenKh || '',
-                email: customer.email || '',
-                phone: customer.SDT || '',
-                address: address,
-                notes: '', // Ghi chú luôn trống cho đơn hàng mới
-                sex: customer.GioiTinh || ''
-              });
-            }
-          }
-        } catch (error) {
-          console.error('Lỗi khi tải thông tin khách hàng:', error);
-          // Xử lý lỗi hoặc để form trống
-        }
-      }
-    };
-
-    loadCustomerData();
-  }, []); // Chạy một lần khi component mount
-
-  const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value
-    });
+  const handleInputChange = (event) => {
+    const { name, value } = event.target;
+    setFormData((current) => ({
+      ...current,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
 
-    // Kiểm tra định dạng số điện thoại (tùy chọn, ví dụ: 10 chữ số)
     if (!/^\d{10,11}$/.test(formData.phone.trim())) {
       alert('Số điện thoại không hợp lệ. Vui lòng nhập 10 hoặc 11 chữ số.');
       return;
     }
+
+    setSubmitting(true);
     try {
       const orderData = {
         ...formData,
         paymentMethod,
         shippingMethod,
         shippingCost,
-        items: cartItems.map(item => ({
+        items: cartItems.map((item) => ({
           product_id: item.product_id,
           name: item.name,
           quantity: item.quantity,
           price: item.price,
           color: item.color,
-          // Thêm các trường khác nếu cần
         })),
-        total: total + shippingCost,
-        status: 'cho_xac_nhan', // Trạng thái mặc định
-        customer_id: customerId, // Thay đổi: Thêm customer_id từ state
-        // Xóa dòng này: customer: isLoggedIn ? JSON.parse(localStorage.getItem('user')) : null
+        total,
+        status: 'cho_xac_nhan',
       };
 
-      console.log("Dữ liệu đơn hàng gửi đi:", orderData); // THÊM DÒNG NÀY ĐỂ KIỂM TRA
-
       const response = await axios.post('/api/client/orders', orderData);
+      const orderCode = response.data?.orderCode;
 
-      if (response.data.orderCode) {
-        await clearCart();
-        navigate(`/order-complete/${response.data.orderCode}`);
+      if (!orderCode) {
+        throw new Error('Trevo did not return an order code.');
       }
+
+      clearCart();
+      navigate(`/order-complete/${orderCode}`);
     } catch (error) {
       console.error('Error creating order:', error);
       alert(error.response?.data?.error || 'Không thể tạo đơn hàng. Vui lòng thử lại.');
+    } finally {
+      setSubmitting(false);
     }
   };
 
@@ -117,7 +84,7 @@ const Checkout = () => {
       <div className="cart-empty">
         <div className="container">
           <h2>Giỏ hàng của bạn đang trống</h2>
-          <p>Hãy thêm sản phẩm vào giỏ trước khi thanh toán!</p>
+          <p>Hãy thêm sản phẩm vào giỏ trước khi thanh toán.</p>
         </div>
       </div>
     );
@@ -135,7 +102,7 @@ const Checkout = () => {
           </div>
           <div className="step active">
             <span className="step-number">2</span>
-            <span className="step-label">Chi tiết thanh toán</span>
+            <span className="step-label">Thông tin</span>
           </div>
           <div className="step">
             <span className="step-number">3</span>
@@ -146,9 +113,9 @@ const Checkout = () => {
         <form onSubmit={handleSubmit} className="checkout-layout">
           <div className="checkout-form">
             <div className="form-section">
-              <h2>Thông tin liên hệ</h2>
+              <h2>Thông tin người mua</h2>
               <div className="form-group">
-                <label>HỌ VÀ TÊN *</label>
+                <label>Họ và tên *</label>
                 <input
                   type="text"
                   name="fullName"
@@ -160,7 +127,7 @@ const Checkout = () => {
               </div>
               <div className="form-grid">
                 <div className="form-group">
-                  <label>EMAIL (KHÔNG BẮT BUỘC)</label>
+                  <label>Email</label>
                   <input
                     type="email"
                     name="email"
@@ -170,7 +137,7 @@ const Checkout = () => {
                   />
                 </div>
                 <div className="form-group">
-                  <label>GIỚI TÍNH</label>
+                  <label>Giới tính</label>
                   <select name="sex" value={formData.sex} onChange={handleInputChange}>
                     <option value="">Chọn giới tính</option>
                     <option value="Nam">Nam</option>
@@ -179,7 +146,7 @@ const Checkout = () => {
                   </select>
                 </div>
                 <div className="form-group">
-                  <label>SỐ ĐIỆN THOẠI *</label>
+                  <label>Số điện thoại *</label>
                   <input
                     type="tel"
                     name="phone"
@@ -195,7 +162,7 @@ const Checkout = () => {
             <div className="form-section">
               <h2>Địa chỉ giao hàng</h2>
               <div className="form-group">
-                <label>ĐỊA CHỈ *</label>
+                <label>Địa chỉ *</label>
                 <input
                   type="text"
                   name="address"
@@ -207,14 +174,14 @@ const Checkout = () => {
               </div>
 
               <div className="form-group">
-                <label>GHI CHÚ (TÙY CHỌN)</label>
+                <label>Ghi chú</label>
                 <textarea
                   name="notes"
-                  placeholder="Ghi chú về đơn hàng, ví dụ: thời gian giao hàng..."
+                  placeholder="Ghi chú về đơn hàng hoặc thời gian giao hàng"
                   value={formData.notes}
                   onChange={handleInputChange}
                   rows="3"
-                ></textarea>
+                />
               </div>
             </div>
 
@@ -227,37 +194,31 @@ const Checkout = () => {
                     name="shipping"
                     value="standard"
                     checked={shippingMethod === 'standard'}
-                    onChange={(e) => {
-                      setShippingMethod(e.target.value);
-                      setShippingCost(30000); // Phí giao hàng tiêu chuẩn
-                    }}
+                    onChange={(event) => setShippingMethod(event.target.value)}
                   />
                   <div className="shipping-info">
                     <span>Giao hàng tiêu chuẩn</span>
-                    <span className="shipping-cost">30,000₫</span>
+                    <span className="shipping-cost">30.000 đ</span>
                   </div>
                 </label>
                 <label className="shipping-option">
                   <input
                     type="radio"
                     name="shipping"
-                    value="jt_express"
-                    checked={shippingMethod === 'jt_express'}
-                    onChange={(e) => {
-                      setShippingMethod(e.target.value);
-                      setShippingCost(50000); // Phí J&T Express
-                    }}
+                    value="express"
+                    checked={shippingMethod === 'express'}
+                    onChange={(event) => setShippingMethod(event.target.value)}
                   />
                   <div className="shipping-info">
-                    <span>J&T Express</span>
-                    <span className="shipping-cost">50,000₫</span>
+                    <span>Giao hàng nhanh</span>
+                    <span className="shipping-cost">50.000 đ</span>
                   </div>
                 </label>
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary place-order-btn">
-              Đặt hàng
+            <button type="submit" className="btn btn-primary place-order-btn" disabled={submitting}>
+              {submitting ? 'Đang gửi đơn...' : 'Đặt hàng'}
             </button>
           </div>
 
@@ -267,21 +228,18 @@ const Checkout = () => {
             <div className="order-items">
               {cartItems.map((item) => (
                 <div key={item.id} className="order-item">
-                    <img src={item.image_url ? (item.image_url.startsWith('http') ? item.image_url : `${import.meta.env.VITE_API_URL}${item.image_url}`) : '/images/placeholder.jpg'} alt={item.name} />
+                  <img src={item.image_url || '/images/placeholder.jpg'} alt={item.name} />
                   <div className="item-details">
                     <h4>{item.name}</h4>
                     {item.color && <p>Màu: {item.color}</p>}
                     <p className="quantity">x {item.quantity}</p>
                   </div>
-                  <span className="item-price">{(item.price * item.quantity).toLocaleString('vi-VN')}₫</span>
+                  <span className="item-price">
+                    {(item.price * item.quantity).toLocaleString('vi-VN')} đ
+                  </span>
                 </div>
               ))}
             </div>
-            {/* 
-            <div className="coupon-input">
-              <input type="text" placeholder="Mã khuyến mãi" />
-              <button type="button" className="btn btn-outline">Áp dụng</button>
-            </div> */}
 
             <div className="form-section">
               <h2>Phương thức thanh toán</h2>
@@ -293,7 +251,7 @@ const Checkout = () => {
                     name="payment"
                     value="cod"
                     checked={paymentMethod === 'cod'}
-                    onChange={(e) => setPaymentMethod(e.target.value)}
+                    onChange={(event) => setPaymentMethod(event.target.value)}
                   />
                   <span>Thanh toán khi nhận hàng (COD)</span>
                 </label>
@@ -303,15 +261,15 @@ const Checkout = () => {
             <div className="summary-totals">
               <div className="summary-row">
                 <span>Tạm tính</span>
-                <span>{total.toLocaleString('vi-VN')}₫</span>
+                <span>{subtotal.toLocaleString('vi-VN')} đ</span>
               </div>
               <div className="summary-row">
                 <span>Phí giao hàng</span>
-                <span>{shippingCost.toLocaleString('vi-VN')}₫</span>
+                <span>{shippingCost.toLocaleString('vi-VN')} đ</span>
               </div>
               <div className="summary-total">
                 <span>Tổng cộng</span>
-                <span>{(total + shippingCost).toLocaleString('vi-VN')}₫</span>
+                <span>{total.toLocaleString('vi-VN')} đ</span>
               </div>
             </div>
           </div>
