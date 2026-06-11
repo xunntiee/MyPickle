@@ -1,30 +1,32 @@
 import express from 'express';
-import { db } from '../../../config/db.js'; // Adjusted path
+import { listTrevoCategories, listTrevoProducts, TrevoApiError } from '../../../lib/trevo-client.js';
+import { buildCategoryMaps, mapTrevoProduct, sortMyPickProducts } from '../../../lib/trevo-mapper.js';
 
 const router = express.Router();
 
-// Get new arrivals
-router.get('/featured/new-arrivals', async (req, res) => {
+router.get('/featured/new-arrivals', async (_req, res) => {
     try {
-        const [products] = await db.query('SELECT * FROM products WHERE is_new = true ORDER BY created_at DESC LIMIT 8');
+        const [categories, productsResponse] = await Promise.all([
+            listTrevoCategories(),
+            listTrevoProducts({ page: 1, limit: 100 }),
+        ]);
 
-        // Construct full image URLs dynamically
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const productsWithFullUrls = products.map(product => {
-            let imageUrl = product.image_url;
-            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                imageUrl = `${baseUrl}${imageUrl}`;
-            }
-            return {
-                ...product,
-                image_url: imageUrl
-            };
-        });
+        const { byId: categoryById } = buildCategoryMaps(categories);
+        const products = productsResponse.products.map((product) =>
+            mapTrevoProduct(product, categoryById)
+        );
 
-        res.json(productsWithFullUrls);
+        res.json(sortMyPickProducts(products, 'newest').slice(0, 8));
     } catch (error) {
+        if (error instanceof TrevoApiError) {
+            return res.status(error.status || 500).json({
+                error: error.message,
+                details: error.details,
+            });
+        }
+
         console.error(error);
-        res.status(500).json({ error: 'Failed to fetch new arrivals' });
+        res.status(500).json({ error: 'Failed to fetch new arrivals from Trevo' });
     }
 });
 

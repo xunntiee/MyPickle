@@ -1,42 +1,68 @@
 import express from 'express';
-import { db } from '../../../config/db.js';
+import { listTrevoOrders, TrevoApiError } from '../../../lib/trevo-client.js';
+import { mapTrevoOrderToMyPick } from '../../../lib/trevo-mapper.js';
+
 const router = express.Router();
+
+function orderMatchesIdentity(order, { customerId, phone, email }) {
+    const deliveryInfo = order.deliveryInfo || {};
+    const customer = order.customer || {};
+
+    if (customerId && order.customerId === customerId) {
+        return true;
+    }
+
+    if (phone) {
+        const normalizedQueryPhone = String(phone).replace(/[\s.\-()]/g, '');
+        const candidatePhones = [
+            deliveryInfo.recipientPhone,
+            customer.phone,
+        ].filter(Boolean).map((value) => String(value).replace(/[\s.\-()]/g, ''));
+
+        if (candidatePhones.includes(normalizedQueryPhone)) {
+            return true;
+        }
+    }
+
+    if (email) {
+        const normalizedEmail = String(email).trim().toLowerCase();
+        if (customer.email && String(customer.email).trim().toLowerCase() === normalizedEmail) {
+            return true;
+        }
+    }
+
+    return false;
+}
 
 router.get('/history', async (req, res) => {
     try {
-        const { customerId } = req.query;
+        const { customerId, phone, email } = req.query;
 
-        if (!customerId) {
-            return res.status(400).json({ message: 'Thiếu ID khách hàng.' });
+        if (!customerId && !phone && !email) {
+            return res.status(400).json({ message: 'Missing customer identity.' });
         }
 
-        const [orders] = await db.query(`
-            SELECT o.*, kh.GioiTinh as customer_gender
-            FROM orders o
-            LEFT JOIN tbl_khachhang kh ON o.customer_id = kh.id
-            WHERE o.customer_id = ?
-            ORDER BY o.created_at DESC
-        `, [customerId]);
+        const response = await listTrevoOrders({
+            page: 1,
+            limit: Number(req.query.limit || 100),
+        });
 
-        if (orders.length === 0) {
-            return res.json([]);
-        }
+        const orders = response.orders
+            .filter((order) => orderMatchesIdentity(order, { customerId, phone, email }))
+            .map(mapTrevoOrderToMyPick)
+            .sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0));
 
-        // For each order, fetch its items
-        const ordersWithItems = await Promise.all(orders.map(async (order) => {
-            const [items] = await db.query(`
-                SELECT oi.id, oi.order_id, oi.product_id, oi.quantity, oi.price, oi.color, oi.product_name AS name, p.image_url
-                FROM order_items oi
-                LEFT JOIN products p ON oi.product_id = p.id
-                WHERE oi.order_id = ?
-            `, [order.id]);
-            return { ...order, items };
-        }));
-
-        res.json(ordersWithItems);
+        res.json(orders);
     } catch (error) {
-        console.error('Lỗi khi lấy lịch sử đơn hàng của khách hàng:', error);
-        res.status(500).json({ error: 'Không thể lấy lịch sử đơn hàng.' });
+        if (error instanceof TrevoApiError) {
+            return res.status(error.status || 500).json({
+                error: error.message,
+                details: error.details,
+            });
+        }
+
+        console.error('Error fetching Trevo order history:', error);
+        res.status(500).json({ error: 'Unable to fetch order history from Trevo.' });
     }
 });
 

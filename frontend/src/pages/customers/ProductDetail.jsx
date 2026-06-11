@@ -35,7 +35,7 @@ const ProductDetail = () => {
             const relatedResponse = await axios.get('/api/client/products', {
                 params: { category: response.data.category_slug } // Sử dụng category_slug ở đây
             });
-            setRelatedProducts(relatedResponse.data.products.filter(p => p.id !== parseInt(id)).slice(0, 4));
+            setRelatedProducts(relatedResponse.data.products.filter(p => String(p.id) !== String(id)).slice(0, 4));
         } catch (error) {
             console.error('Error fetching product:', error);
         }
@@ -43,8 +43,10 @@ const ProductDetail = () => {
 
     const handleAddToCart = () => {
         if (product) {
-            addToCart(product, quantity, selectedColor);
-            alert('Sản phẩm đã được thêm vào giỏ hàng!');
+            const added = addToCart(product, quantity, selectedColor);
+            if (added) {
+                alert('Sản phẩm đã được thêm vào giỏ hàng!');
+            }
         }
     };
 
@@ -67,8 +69,21 @@ const ProductDetail = () => {
         return <div className="loading">Đang tải...</div>;
     }
 
-    const images = product.images ? JSON.parse(product.images) : [product.image_url];
-    const colors = product.colors ? JSON.parse(product.colors) : [];
+    const parseJsonList = (value, fallback = []) => {
+        if (!value) {
+            return fallback;
+        }
+
+        try {
+            const parsed = typeof value === 'string' ? JSON.parse(value) : value;
+            return Array.isArray(parsed) ? parsed : fallback;
+        } catch {
+            return fallback;
+        }
+    };
+
+    const images = parseJsonList(product.images, product.image_url ? [product.image_url] : []);
+    const colors = parseJsonList(product.colors);
 
     return (
         <div className="product-detail-page">

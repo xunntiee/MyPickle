@@ -1,114 +1,128 @@
 import express from 'express';
-import { db } from '../../../config/db.js';
+import { listTrevoOrders, TrevoApiError } from '../../../lib/trevo-client.js';
+import { mapTrevoOrderToMyPick } from '../../../lib/trevo-mapper.js';
 
 const router = express.Router();
 
+const LEGACY_STATUS_TO_TREVO = {
+    cho_xac_nhan: 'pending',
+    da_xac_nhan: 'confirmed',
+    dang_giao: 'confirmed',
+    da_nhan: 'completed',
+    doi_hang: 'completed',
+    tra_hang: 'completed',
+    hoan_tien: 'cancelled',
+    da_huy: 'cancelled',
+    huy_sau_xac_nhan: 'cancelled',
+    giao_that_bai: 'cancelled',
+};
+
+async function listTrevoOrdersForAdmin() {
+    const pageSize = 100;
+    const allOrders = [];
+    let page = 1;
+
+    while (page <= 20) {
+        const response = await listTrevoOrders({ page, limit: pageSize });
+        allOrders.push(...response.orders);
+
+        const totalPages = Number(
+            response.meta?.totalPages ||
+            response.meta?.total_pages ||
+            Math.ceil(Number(response.meta?.total || allOrders.length) / pageSize)
+        );
+
+        if (!response.orders.length || !totalPages || page >= totalPages) {
+            break;
+        }
+
+        page += 1;
+    }
+
+    return allOrders;
+}
+
+function buildDashboardStats(orders) {
+    const completedOrders = orders.filter((order) => order.status === 'completed');
+    const productTotals = new Map();
+
+    for (const order of completedOrders) {
+        for (const item of order.items || []) {
+            const productName = item.product_name || item.name || 'Unknown product';
+            productTotals.set(productName, (productTotals.get(productName) || 0) + Number(item.quantity || 0));
+        }
+    }
+
+    return {
+        totalOrdersFiltered: orders.length,
+        totalRevenueFiltered: completedOrders.reduce((sum, order) => sum + Number(order.total_amount || 0), 0),
+        pendingOrders: orders.filter((order) => order.status === 'pending').length,
+        failedOrders: orders.filter((order) => order.status === 'cancelled').length,
+        successfulOrders: completedOrders.length,
+        totalItemsSold: completedOrders.reduce(
+            (sum, order) => sum + (order.items || []).reduce((itemSum, item) => itemSum + Number(item.quantity || 0), 0),
+            0
+        ),
+        topSellingProducts: [...productTotals.entries()]
+            .map(([product_name, total_sold]) => ({ product_name, total_sold }))
+            .sort((a, b) => b.total_sold - a.total_sold)
+            .slice(0, 3),
+    };
+}
+
+function filterOrders(orders, query) {
+    const {
+        search = '',
+        startDate,
+        endDate,
+        salesType,
+        statusFilter,
+    } = query;
+    const normalizedSearch = String(search).trim().toLowerCase();
+    const trevoStatusFilter = LEGACY_STATUS_TO_TREVO[statusFilter] || statusFilter;
+
+    return orders.filter((order) => {
+        const haystack = [
+            order.order_code,
+            order.customer_name,
+            order.customer_phone,
+            order.customer_email,
+        ].join(' ').toLowerCase();
+        const createdAt = order.created_at ? new Date(order.created_at) : null;
+        const afterStart = !startDate || (createdAt && createdAt >= new Date(String(startDate)));
+        const beforeEnd = !endDate || (createdAt && createdAt <= new Date(`${endDate}T23:59:59`));
+        const matchesSearch = !normalizedSearch || haystack.includes(normalizedSearch);
+        const matchesSalesType = !salesType || salesType === 'all' || order.order_type === salesType;
+        const matchesStatus = !trevoStatusFilter || trevoStatusFilter === 'all' || order.status === trevoStatusFilter;
+
+        return matchesSearch && afterStart && beforeEnd && matchesSalesType && matchesStatus;
+    });
+}
+
 router.get('/', async (req, res) => {
     try {
-        const { page = 1, limit = 5, search = '', startDate, endDate, salesType, statusFilter } = req.query;
-        const offset = (parseInt(page) - 1) * parseInt(limit);
-        const searchPattern = `%${search}%`;
-
-        let whereClause = 'WHERE 1=1';
-        const queryParams = [];
-
-        if (search) {
-            whereClause += ' AND (o.order_code LIKE ? OR kh.TenKh LIKE ? OR kh.SDT LIKE ?)';
-            queryParams.push(searchPattern, searchPattern, searchPattern);
-        }
-
-        if (startDate) {
-            whereClause += ' AND o.created_at >= ?';
-            queryParams.push(startDate);
-        }
-        if (endDate) {
-            whereClause += ' AND o.created_at <= ?';
-            queryParams.push(endDate + ' 23:59:59');
-        }
-        if (salesType && salesType !== 'all') {
-            whereClause += ' AND o.order_type = ?';
-            queryParams.push(salesType);
-        }
-        if (statusFilter && statusFilter !== 'all') {
-            whereClause += ' AND o.status = ?';
-            queryParams.push(statusFilter);
-        }
-
-        const [totalCountResult] = await db.query(
-            `SELECT COUNT(o.id) AS totalCount
-             FROM orders o
-             LEFT JOIN tbl_khachhang kh ON o.customer_id = kh.id
-             ${whereClause}`,
-            queryParams
-        );
-        const totalCount = totalCountResult[0].totalCount;
-
-        const [orders] = await db.query(
-            `SELECT o.*, kh.TenKh AS customer_name, kh.SDT AS customer_phone, kh.email AS customer_email, kh.GioiTinh AS customer_gender
-             FROM orders o
-             LEFT JOIN tbl_khachhang kh ON o.customer_id = kh.id
-             ${whereClause}
-             ORDER BY o.created_at DESC
-             LIMIT ? OFFSET ?`,
-            [...queryParams, parseInt(limit), offset]
-        );
-
-        const [dashboardStatsResult] = await db.query(`
-            SELECT
-            COUNT(o.id) AS totalOrdersFiltered,
-            SUM(CASE
-                WHEN o.status IN ('da_nhan', 'doi_hang', 'tra_hang') THEN o.total_amount -- Doanh thu dương cho đơn đã nhận và đổi hàng, trả hàng
-                ELSE 0 -- Các trạng thái khác không ảnh hưởng đến doanh thu
-            END) AS totalRevenueFiltered,
-            SUM(CASE WHEN o.status = 'cho_xac_nhan' THEN 1 ELSE 0 END) AS pendingOrders,
-            SUM(CASE WHEN o.status IN ('da_huy', 'giao_that_bai', 'huy_sau_xac_nhan', 'hoan_tien') THEN 1 ELSE 0 END) AS failedOrders,
-            SUM(CASE WHEN o.status = 'da_nhan' THEN 1 ELSE 0 END) AS successfulOrders
-        FROM orders o
-        LEFT JOIN tbl_khachhang kh ON o.customer_id = kh.id
-        ${whereClause}
-        `, queryParams);
-
-        const successfulOrdersWhereClause = whereClause + " AND o.status = 'da_nhan'";
-
-        const [totalItemsSoldResult] = await db.query(`
-            SELECT SUM(oi.quantity) AS totalItemsSold
-            FROM orders o
-            LEFT JOIN tbl_khachhang kh ON o.customer_id = kh.id
-            JOIN order_items oi ON o.id = oi.order_id
-            ${successfulOrdersWhereClause}
-        `, queryParams);
-
-        const [topSellingProducts] = await db.query(`
-            SELECT oi.product_name, SUM(oi.quantity) as total_sold
-            FROM orders o
-            LEFT JOIN tbl_khachhang kh ON o.customer_id = kh.id
-            JOIN order_items oi ON o.id = oi.order_id
-            ${successfulOrdersWhereClause}
-            GROUP BY oi.product_name
-            ORDER BY total_sold DESC
-            LIMIT 3
-        `, queryParams);
-
-        const stats = dashboardStatsResult[0];
-        const totalItemsSold = totalItemsSoldResult[0].totalItemsSold || 0;
+        const page = Math.max(Number(req.query.page || 1), 1);
+        const limit = Math.max(Number(req.query.limit || 5), 1);
+        const trevoOrders = await listTrevoOrdersForAdmin();
+        const mappedOrders = trevoOrders.map(mapTrevoOrderToMyPick);
+        const filteredOrders = filterOrders(mappedOrders, req.query);
+        const offset = (page - 1) * limit;
 
         res.json({
-            orders,
-            totalCount,
-            dashboardStats: {
-                totalOrdersFiltered: stats.totalOrdersFiltered || 0,
-                totalRevenueFiltered: stats.totalRevenueFiltered || 0,
-                pendingOrders: stats.pendingOrders || 0,
-                failedOrders: stats.failedOrders || 0,
-                successfulOrders: stats.successfulOrders || 0,
-                totalItemsSold: totalItemsSold,
-                topSellingProducts: topSellingProducts || [],
-            }
+            orders: filteredOrders.slice(offset, offset + limit),
+            totalCount: filteredOrders.length,
+            dashboardStats: buildDashboardStats(filteredOrders),
         });
-
     } catch (error) {
-        console.error('Lỗi khi tải đơn hàng:', error);
-        res.status(500).json({ error: 'Không thể tải danh sách đơn hàng.' });
+        if (error instanceof TrevoApiError) {
+            return res.status(error.status || 500).json({
+                error: error.message,
+                details: error.details,
+            });
+        }
+
+        console.error('Error loading Trevo admin orders:', error);
+        res.status(500).json({ error: 'Unable to load orders from Trevo.' });
     }
 });
 

@@ -30,6 +30,10 @@ const OrderComplete = () => {
     switch (method) {
       case 'cod':
         return 'Thanh toán khi nhận hàng (COD)';
+      case 'cash':
+        return 'Thanh toán tiền mặt';
+      case 'bank_transfer':
+        return 'Chuyển khoản ngân hàng';
       // case 'card':
       //   return 'Thẻ tín dụng';
       default:

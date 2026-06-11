@@ -1,32 +1,38 @@
 import express from 'express';
-import { db } from '../../../config/db.js'; // Adjusted path
+import { listTrevoCategories, listTrevoProducts, TrevoApiError } from '../../../lib/trevo-client.js';
+import { buildCategoryMaps, mapTrevoProduct } from '../../../lib/trevo-mapper.js';
 
 const router = express.Router();
 
-// Endpoint mới để lấy sản phẩm giảm giá nổi bật
-router.get('/featured/on-sale', async (req, res) => {
+router.get('/featured/on-sale', async (_req, res) => {
     try {
-        const [products] = await db.query(
-            'SELECT * FROM products WHERE original_price IS NOT NULL AND price < original_price ORDER BY (original_price - price) DESC LIMIT 8'
-        );
+        const [categories, productsResponse] = await Promise.all([
+            listTrevoCategories(),
+            listTrevoProducts({ page: 1, limit: 100 }),
+        ]);
 
-        // Construct full image URLs dynamically
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const productsWithFullUrls = products.map(product => {
-            let imageUrl = product.image_url;
-            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                imageUrl = `${baseUrl}${imageUrl}`;
-            }
-            return {
-                ...product,
-                image_url: imageUrl
-            };
-        });
+        const { byId: categoryById } = buildCategoryMaps(categories);
+        const products = productsResponse.products
+            .map((product) => mapTrevoProduct(product, categoryById))
+            .filter((product) => product.original_price && product.price < product.original_price)
+            .sort((a, b) => {
+                const aDiscount = a.original_price - a.price;
+                const bDiscount = b.original_price - b.price;
+                return bDiscount - aDiscount;
+            })
+            .slice(0, 8);
 
-        res.json(productsWithFullUrls);
+        res.json(products);
     } catch (error) {
+        if (error instanceof TrevoApiError) {
+            return res.status(error.status || 500).json({
+                error: error.message,
+                details: error.details,
+            });
+        }
+
         console.error(error);
-        res.status(500).json({ error: 'Failed to fetch on-sale products' });
+        res.status(500).json({ error: 'Failed to fetch on-sale products from Trevo' });
     }
 });
 

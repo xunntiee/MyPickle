@@ -163,6 +163,25 @@
   color: white;
 }
 
+.status-badge,
+.source-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 72px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  color: white;
+  font-size: 0.82rem;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.source-badge {
+  min-width: auto;
+  background: #111827;
+}
+
 .status-warning {
   background: #ff9800;
 }
@@ -181,6 +200,10 @@
 
 .status-danger {
   background: #f44336;
+}
+
+.status-secondary {
+  background: #6b7280;
 }
 
 .status-pending {

@@ -70,19 +70,11 @@ const AdminCategories = () => {
 
 
   const openAddModal = () => {
-    setEditMode(false);
-    setCurrentCategory({ id: null, name: '', slug: '', image_url: '' });
-    setImageFile(null);
-    setImagePreview('');
-    setShowModal(true);
+    alert('Commerce categories are now managed in Trevo. Please add categories in Trevo.');
   };
 
   const openEditModal = (category) => {
-    setEditMode(true);
-    setCurrentCategory(category);
-    setImageFile(null);
-    setImagePreview(category.image_url || '');
-    setShowModal(true);
+    alert(`"${category.name}" is managed in Trevo. Please edit categories in Trevo.`);
   };
 
   const closeModal = () => {
@@ -122,16 +114,7 @@ const AdminCategories = () => {
   };
 
   const handleDelete = async (id) => {
-    if (window.confirm('Are you sure you want to delete this category?')) {
-      try {
-        await axios.delete(`/api/admin/categories/${id}`);
-        alert('Category deleted successfully!');
-        fetchCategories();
-      } catch (error) {
-        console.error('Error deleting category:', error);
-        alert('Failed to delete category.');
-      }
-    }
+    alert(`Category ${id} is managed in Trevo. Delete or archive it in Trevo.`);
   };
 
   return (

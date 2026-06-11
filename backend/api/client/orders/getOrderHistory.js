@@ -1,18 +1,30 @@
 import express from 'express';
-import { db } from '../../../config/db.js';
+import { listTrevoOrders, TrevoApiError } from '../../../lib/trevo-client.js';
+import { mapTrevoOrderToMyPick } from '../../../lib/trevo-mapper.js';
 
 const router = express.Router();
 
-router.get('/history', async (req, res) => {
-
+router.get('/history/all', async (req, res) => {
     try {
-        const [orders] = await db.query(
-            'SELECT * FROM orders ORDER BY created_at DESC'
-        );
-        res.json(orders);
+        const response = await listTrevoOrders({
+            page: Number(req.query.page || 1),
+            limit: Number(req.query.limit || 100),
+            status: req.query.status,
+            paymentStatus: req.query.paymentStatus,
+            shippingStatus: req.query.shippingStatus,
+        });
+
+        res.json(response.orders.map(mapTrevoOrderToMyPick));
     } catch (error) {
-        console.error('Lỗi khi lấy lịch sử đơn hàng:', error);
-        res.status(500).json({ error: 'Không thể lấy lịch sử đơn hàng.' });
+        if (error instanceof TrevoApiError) {
+            return res.status(error.status || 500).json({
+                error: error.message,
+                details: error.details,
+            });
+        }
+
+        console.error('Error fetching Trevo orders:', error);
+        res.status(500).json({ error: 'Unable to fetch orders from Trevo.' });
     }
 });
 

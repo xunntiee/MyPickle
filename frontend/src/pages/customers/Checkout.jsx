@@ -100,7 +100,7 @@ const Checkout = () => {
 
       console.log("Dữ liệu đơn hàng gửi đi:", orderData); // THÊM DÒNG NÀY ĐỂ KIỂM TRA
 
-      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/client/orders`, orderData); // Đảm bảo URL đầy đủ
+      const response = await axios.post('/api/client/orders', orderData);
 
       if (response.data.orderCode) {
         await clearCart();
@@ -266,7 +266,7 @@ const Checkout = () => {
 
             <div className="order-items">
               {cartItems.map((item) => (
-                <div key={item.product_id} className="order-item">
+                <div key={item.id} className="order-item">
                     <img src={item.image_url ? (item.image_url.startsWith('http') ? item.image_url : `${import.meta.env.VITE_API_URL}${item.image_url}`) : '/images/placeholder.jpg'} alt={item.name} />
                   <div className="item-details">
                     <h4>{item.name}</h4>

@@ -16,6 +16,8 @@ const PurchaseHistory = () => {
             setLoading(true);
             setError(null);
             let customerId = null;
+            let customerPhone = null;
+            let customerEmail = null;
 
             const khachString = localStorage.getItem('khach'); // Lấy thông tin khách hàng
             const userString = localStorage.getItem('user'); // Lấy thông tin nhân viên/quản lý
@@ -42,7 +44,13 @@ const PurchaseHistory = () => {
                     const khach = JSON.parse(khachString);
                     if (khach.role === "khachhang" && khach.MaKH) {
                         customerId = khach.MaKH; // Lấy MaKH làm ID khách hàng
-                        console.log('Frontend: Extracted customerId from localStorage (khach):', customerId);
+                        customerPhone = khach.SDT || khach.phone || null;
+                        customerEmail = khach.email || null;
+                        console.log('Frontend: Extracted customer identity from localStorage (khach):', {
+                            customerId,
+                            customerPhone,
+                            customerEmail,
+                        });
                     } else {
                         setError("Dữ liệu đăng nhập khách hàng không hợp lệ. Vui lòng đăng nhập lại.");
                         setLoading(false);
@@ -56,15 +64,34 @@ const PurchaseHistory = () => {
                 }
             }
 
-            // Nếu không tìm thấy ID khách hàng hợp lệ
-            if (!customerId) {
+            if (customerId && (!customerPhone || !customerEmail)) {
+                try {
+                    const profileResponse = await axios.get(`/api/admin/taikhoan/customer/profile?id=${customerId}`);
+                    const customer = profileResponse.data?.customer;
+                    if (customer) {
+                        customerPhone = customerPhone || customer.SDT || customer.phone || null;
+                        customerEmail = customerEmail || customer.email || null;
+                    }
+                } catch (profileError) {
+                    console.warn('Could not load customer profile for Trevo order history:', profileError);
+                }
+            }
+
+            // Nếu không tìm thấy thông tin khách hàng hợp lệ
+            if (!customerId && !customerPhone && !customerEmail) {
                 setError("Bạn chưa đăng nhập. Vui lòng đăng nhập để xem lịch sử mua hàng.");
                 setLoading(false);
                 return;
             }
 
             try {
-                const response = await axios.get(`/api/client/orders/history?customerId=${customerId}`);
+                const response = await axios.get('/api/client/orders/history', {
+                    params: {
+                        customerId,
+                        phone: customerPhone,
+                        email: customerEmail,
+                    },
+                });
                 setOrders(response.data);
             } catch (err) {
                 console.error('Lỗi khi lấy lịch sử đơn hàng:', err);
@@ -104,6 +131,11 @@ const PurchaseHistory = () => {
             da_huy: { color: 'danger', text: 'Đã hủy (trước xác nhận)' },
             huy_sau_xac_nhan: { color: 'danger', text: 'Hủy sau xác nhận' },
             giao_that_bai: { color: 'danger', text: 'Giao thất bại' },
+            pending: { color: 'warning', text: 'Chờ xử lý' },
+            confirmed: { color: 'info', text: 'Đã xác nhận' },
+            completed: { color: 'success', text: 'Hoàn tất' },
+            cancelled: { color: 'danger', text: 'Đã hủy' },
+            draft: { color: 'secondary', text: 'Nháp' },
         };
         return statuses[status] || { color: 'secondary', text: status };
     };

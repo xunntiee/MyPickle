@@ -43,7 +43,7 @@ const AdminProducts = () => {
                 limit: productsPerPage,
                 search: searchTerm,
             };
-            const response = await axios.get('/api/admin/products', { params });
+            const response = await axios.get('/api/client/products', { params });
             setProducts(response.data.products);
             setTotalProducts(response.data.totalCount);
         } catch (error) {
@@ -54,8 +54,8 @@ const AdminProducts = () => {
     const fetchCategories = async () => {
         try {
             // Lấy tất cả danh mục cho dropdown, không phân trang
-            const response = await axios.get('/api/admin/categories');
-            setCategories(response.data.categories);
+            const response = await axios.get('/api/client/categories');
+            setCategories(Array.isArray(response.data) ? response.data : []);
         } catch (error) {
             console.error('Error fetching categories:', error);
         }
@@ -86,37 +86,11 @@ const AdminProducts = () => {
     };
 
     const openAddModal = () => {
-        setCurrentProduct({
-            id: null,
-            name: '',
-            description: '',
-            price: '',
-            original_price: '',
-            category: categories[0]?.name || '',
-            image_url: '',
-            images: [],
-            colors: [],
-            stock: '',
-            is_new: false,
-            discount_percent: 0
-        });
-        setEditMode(false);
-        setShowModal(true);
-        setImageFile(null);
-        setImagePreview('');
+        alert('Commerce catalog is now managed in Trevo. Please add products in Trevo.');
     };
 
     const openEditModal = (product) => {
-        setCurrentProduct({
-            ...product,
-            images: JSON.parse(product.images || '[]'),
-            colors: JSON.parse(product.colors || '[]'),
-            original_price: product.original_price || '',
-        });
-        setEditMode(true);
-        setShowModal(true);
-        setImageFile(null);
-        setImagePreview(product.image_url || '');
+        alert(`"${product.name}" is managed in Trevo. Please edit products in Trevo.`);
     };
 
     const closeModal = () => {
@@ -162,16 +136,7 @@ const AdminProducts = () => {
     };
 
     const handleDelete = async (id) => {
-        if (confirm('Are you sure you want to delete this product?')) {
-            try {
-                await axios.delete(`/api/admin/products/${id}`);
-                alert('Product deleted successfully!');
-                fetchProducts();
-            } catch (error) {
-                console.error('Error deleting product:', error);
-                alert('Failed to delete product.');
-            }
-        }
+        alert(`Product ${id} is managed in Trevo. Delete or deactivate it in Trevo.`);
     };
 
     const handleSearchChange = (e) => {
@@ -234,7 +199,7 @@ const AdminProducts = () => {
                                             <strong>{product.name}</strong>
                                         </div>
                                     </td>
-                                    <td>{product.category}</td>
+                                    <td>{product.category_name || product.category}</td>
                                     <td>
                                         <div className="price-cell">
                                             <span className="current">

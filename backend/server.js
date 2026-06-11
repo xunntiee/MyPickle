@@ -12,13 +12,23 @@
 
   const app = express();
 
-  // Thay thế dòng app.use(cors()); bằng đoạn code này
+  function parseOrigins(value) {
+    return String(value || '')
+      .split(',')
+      .map((origin) => origin.trim())
+      .filter(Boolean);
+  }
+
+  const defaultCorsOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://my-pickle-bay.vercel.app',
+  ];
+  const corsOrigins = parseOrigins(process.env.CORS_ORIGINS);
+
   app.use(cors({
-    origin: [
-      'http://localhost:5173',
-      'https://my-pickle-bay.vercel.app',
-    ],
-    credentials: true // nếu dùng cookie
+    origin: corsOrigins.length > 0 ? corsOrigins : defaultCorsOrigins,
+    credentials: true,
   }));
 
   app.use(express.json());

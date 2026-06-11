@@ -1,43 +1,34 @@
 import express from 'express';
-import { db } from '../../../config/db.js'; // Adjusted path
+import { listTrevoCategories, TrevoApiError } from '../../../lib/trevo-client.js';
+import { mapTrevoCategory } from '../../../lib/trevo-mapper.js';
 
 const router = express.Router();
 
-// Get all categories
 router.get('/', async (req, res) => {
     try {
-        const { search = '' } = req.query;
-        const searchPattern = `%${search}%`;
+        const search = String(req.query.search || '').trim().toLowerCase();
+        const categories = (await listTrevoCategories())
+            .map(mapTrevoCategory)
+            .filter((category) => {
+                if (!search) {
+                    return true;
+                }
 
-        let query = 'SELECT * FROM categories WHERE 1=1';
-        const params = [];
+                return `${category.name} ${category.slug}`.toLowerCase().includes(search);
+            })
+            .sort((a, b) => a.name.localeCompare(b.name));
 
-        if (search) {
-            query += ' AND (name LIKE ? OR slug LIKE ?)';
-            params.push(searchPattern, searchPattern);
+        res.json(categories);
+    } catch (error) {
+        if (error instanceof TrevoApiError) {
+            return res.status(error.status || 500).json({
+                error: error.message,
+                details: error.details,
+            });
         }
 
-        query += ' ORDER BY name';
-
-        const [categories] = await db.query(query, params);
-
-        // Construct full image URLs dynamically
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const categoriesWithFullUrls = categories.map(category => {
-            let imageUrl = category.image_url;
-            if (imageUrl && !imageUrl.startsWith('http://') && !imageUrl.startsWith('https://')) {
-                imageUrl = `${baseUrl}${imageUrl}`;
-            }
-            return {
-                ...category,
-                image_url: imageUrl
-            };
-        });
-
-        res.json(categoriesWithFullUrls);
-    } catch (error) {
-        console.error('Lỗi khi lấy tất cả danh mục:', error);
-        res.status(500).json({ error: 'Failed to fetch categories' });
+        console.error('Error fetching categories from Trevo:', error);
+        res.status(500).json({ error: 'Failed to fetch categories from Trevo' });
     }
 });
 

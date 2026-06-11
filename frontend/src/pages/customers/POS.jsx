@@ -26,7 +26,7 @@ export function POS() {
                     params.append('search', searchTerm);
                 }
 
-                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/admin/products?${params.toString()}`);
+                const response = await fetch(`${import.meta.env.VITE_API_URL}/api/client/products?${params.toString()}`);
                 if (!response.ok) {
                     throw new Error('Failed to fetch products');
                 }

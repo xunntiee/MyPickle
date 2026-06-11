@@ -115,6 +115,11 @@ const AdminOrders = () => {
       da_huy: { color: 'danger', text: 'Đã hủy (trước xác nhận)' },
       huy_sau_xac_nhan: { color: 'danger', text: 'Hủy sau xác nhận' },
       giao_that_bai: { color: 'danger', text: 'Giao thất bại' },
+      draft: { color: 'secondary', text: 'Nháp' },
+      pending: { color: 'warning', text: 'Chờ xử lý' },
+      confirmed: { color: 'info', text: 'Đã xác nhận' },
+      completed: { color: 'success', text: 'Hoàn tất' },
+      cancelled: { color: 'danger', text: 'Đã hủy' },
     };
     return statuses[status] || { color: 'secondary', text: status };
   };
@@ -345,7 +350,7 @@ const AdminOrders = () => {
         </div>
 
 
-        {selectedOrders.length > 0 && (
+        {false && selectedOrders.length > 0 && (
           <div className="hangloat-actions">
             <span>Đã chọn {selectedOrders.length} đơn hàng</span>
             <div className="hangloat-buttons">
@@ -381,13 +386,7 @@ const AdminOrders = () => {
           <table className="orders-table">
             <thead>
               <tr>
-                <th>
-                  <input
-                    type="checkbox"
-                    checked={selectedOrders.length === orders.length && orders.length > 0}
-                    onChange={handleSelectAll}
-                  />
-                </th>
+                <th>Nguồn</th>
                 <th>Mã ĐH</th>
                 <th>Khách hàng</th>
                 <th>Ngày đặt</th>
@@ -402,13 +401,7 @@ const AdminOrders = () => {
             <tbody>
               {orders.map((order) => (
                 <tr key={order.id}>
-                  <td>
-                    <input
-                      type="checkbox"
-                      checked={selectedOrders.includes(order.id)}
-                      onChange={() => handleSelectOrder(order.id)}
-                    />
-                  </td>
+                  <td><span className="source-badge">Trevo</span></td>
                   <td><strong>{order.order_code}</strong></td>
                   <td>
                     <div className="customer-info">
@@ -420,8 +413,6 @@ const AdminOrders = () => {
                   <td><strong>{order.total_amount.toLocaleString('vi-VN')}₫</strong></td>
                   <td><span className="payment-method">{renderPaymentMethod(order.payment_method)}</span></td>
                   <td>
-                    {/* Thêm console.log để kiểm tra giá trị order.order_type */}
-                    {console.log('Order in AdminOrders:', order)}
                     <span className={`order-type-badge order-type-${order.order_type || 'unknown'}`}>
                       {/* Điều chỉnh logic hiển thị cho Kiểu bán */}
                       {order.order_type === 'pos' ? 'Tại quầy' :
@@ -430,18 +421,9 @@ const AdminOrders = () => {
                     </span>
                   </td>
                   <td>
-                    <select
-                      className={`status-select status-${getStatusInfo(order.status).color}`}
-                      value={order.status}
-                      onChange={(e) => updateOrderStatus(order.id, e.target.value)}
-                    >
-                      <option value={order.status}>{getStatusInfo(order.status).text}</option>
-                      {getNextStatusOptions(order.status).map((next) => (
-                        <option key={next} value={next}>
-                          {getStatusInfo(next).text}
-                        </option>
-                      ))}
-                    </select>
+                    <span className={`status-badge status-${getStatusInfo(order.status).color}`}>
+                      {getStatusInfo(order.status).text}
+                    </span>
                   </td>
                   <td>
                     <div className="action-buttons-orders">
